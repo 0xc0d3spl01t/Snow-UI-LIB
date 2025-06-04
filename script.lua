@@ -10,6 +10,111 @@ local function createTween(object, info, properties)
     return TweenService:Create(object, info, properties)
 end
 
+local function smoothTween(object, duration, easing, direction, properties)
+    local tween = createTween(object, TweenInfo.new(duration or 0.3, easing or Enum.EasingStyle.Quart, direction or Enum.EasingDirection.Out), properties)
+    tween:Play()
+    return tween
+end
+
+local function bounceTween(object, duration, properties)
+    return smoothTween(object, duration or 0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out, properties)
+end
+
+local function elasticTween(object, duration, properties)
+    return smoothTween(object, duration or 0.6, Enum.EasingStyle.Elastic, Enum.EasingDirection.Out, properties)
+end
+
+local function pulseTween(object, duration, scale)
+    local originalSize = object.Size
+    local pulseSize = UDim2.new(originalSize.X.Scale * (scale or 1.05), originalSize.X.Offset * (scale or 1.05), 
+                                originalSize.Y.Scale * (scale or 1.05), originalSize.Y.Offset * (scale or 1.05))
+    
+    local pulse1 = smoothTween(object, duration or 0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, {Size = pulseSize})
+    pulse1.Completed:Connect(function()
+        smoothTween(object, duration or 0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, {Size = originalSize})
+    end)
+    return pulse1
+end
+
+local function glowEffect(object, color, intensity)
+    local glow = Instance.new("ImageLabel")
+    glow.Name = "GlowEffect"
+    glow.Parent = object
+    glow.BackgroundTransparency = 1
+    glow.Image = "rbxasset://textures/ui/Glow.png"
+    glow.ImageColor3 = color or Color3.new(1, 1, 1)
+    glow.ImageTransparency = 1
+    glow.Size = UDim2.new(1, 20, 1, 20)
+    glow.Position = UDim2.new(0, -10, 0, -10)
+    glow.ZIndex = object.ZIndex - 1
+    
+    smoothTween(glow, 0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, {
+        ImageTransparency = 1 - (intensity or 0.3)
+    })
+    
+    return glow
+end
+
+local function fadeIn(object, duration)
+    object.Visible = true
+    if object:IsA("Frame") or object:IsA("TextLabel") or object:IsA("TextButton") then
+        object.BackgroundTransparency = 1
+        smoothTween(object, duration or 0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, {BackgroundTransparency = 0})
+    end
+    if object:IsA("TextLabel") or object:IsA("TextButton") then
+        object.TextTransparency = 1
+        smoothTween(object, duration or 0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, {TextTransparency = 0})
+    end
+end
+
+local function slideIn(object, direction, duration)
+    local originalPos = object.Position
+    local offset = UDim2.new(0, 0, 0, 0)
+    
+    if direction == "left" then
+        offset = UDim2.new(-1, 0, 0, 0)
+    elseif direction == "right" then
+        offset = UDim2.new(1, 0, 0, 0)
+    elseif direction == "up" then
+        offset = UDim2.new(0, 0, -1, 0)
+    elseif direction == "down" then
+        offset = UDim2.new(0, 0, 1, 0)
+    end
+    
+    object.Position = UDim2.new(originalPos.X.Scale + offset.X.Scale, originalPos.X.Offset + offset.X.Offset,
+                               originalPos.Y.Scale + offset.Y.Scale, originalPos.Y.Offset + offset.Y.Offset)
+    
+    smoothTween(object, duration or 0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.Out, {Position = originalPos})
+end
+
+local function createRipple(object, position)
+    local ripple = Instance.new("Frame")
+    ripple.Name = "Ripple"
+    ripple.Parent = object
+    ripple.BackgroundColor3 = Color3.new(1, 1, 1)
+    ripple.BackgroundTransparency = 0.8
+    ripple.BorderSizePixel = 0
+    ripple.Size = UDim2.new(0, 0, 0, 0)
+    ripple.Position = UDim2.new(0, position.X - object.AbsolutePosition.X, 0, position.Y - object.AbsolutePosition.Y)
+    ripple.ZIndex = object.ZIndex + 1
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0.5, 0)
+    corner.Parent = ripple
+    
+    local maxSize = math.max(object.AbsoluteSize.X, object.AbsoluteSize.Y) * 2
+    
+    local expandTween = smoothTween(ripple, 0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, {
+        Size = UDim2.new(0, maxSize, 0, maxSize),
+        Position = UDim2.new(0, position.X - object.AbsolutePosition.X - maxSize/2, 0, position.Y - object.AbsolutePosition.Y - maxSize/2),
+        BackgroundTransparency = 1
+    })
+    
+    expandTween.Completed:Connect(function()
+        ripple:Destroy()
+    end)
+end
+
 local function createFrame(parent, properties)
     local frame = Instance.new("Frame")
     frame.Parent = parent
@@ -118,13 +223,36 @@ function Library.new(title)
     addCorner(self.CloseButton, 6)
     
     self.CloseButton.MouseButton1Click:Connect(function()
-        local tween = createTween(self.MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+        pulseTween(self.CloseButton, 0.1, 0.9)
+        
+        local closeTween = smoothTween(self.MainFrame, 0.4, Enum.EasingStyle.Back, Enum.EasingDirection.In, {
             Size = UDim2.new(0, 0, 0, 0),
-            Position = UDim2.new(0.5, 0, 0.5, 0)
+            Position = UDim2.new(0.5, 0, 0.5, 0),
+            BackgroundTransparency = 1
         })
-        tween:Play()
-        tween.Completed:Wait()
+        
+        smoothTween(self.TitleBar, 0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In, {BackgroundTransparency = 1})
+        smoothTween(self.TabContainer, 0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In, {BackgroundTransparency = 1})
+        smoothTween(self.ContentContainer, 0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In, {BackgroundTransparency = 1})
+        smoothTween(self.TitleLabel, 0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In, {TextTransparency = 1})
+        smoothTween(self.CloseButton, 0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In, {BackgroundTransparency = 1, TextTransparency = 1})
+        
+        closeTween.Completed:Wait()
         self.ScreenGui:Destroy()
+    end)
+    
+    self.CloseButton.MouseEnter:Connect(function()
+        pulseTween(self.CloseButton, 0.1, 1.1)
+        smoothTween(self.CloseButton, 0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, {
+            BackgroundColor3 = Color3.new(1, 0.3, 0.3)
+        })
+        glowEffect(self.CloseButton, Color3.new(1, 0.2, 0.2), 0.5)
+    end)
+    
+    self.CloseButton.MouseLeave:Connect(function()
+        smoothTween(self.CloseButton, 0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, {
+            BackgroundColor3 = Color3.new(0.8, 0.2, 0.2)
+        })
     end)
     
     self.TabContainer = createFrame(self.MainFrame, {
@@ -159,16 +287,31 @@ function Library.new(title)
     self.Tabs = {}
     self.CurrentTab = nil
     
-    local openTween = createTween(self.MainFrame, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-        Size = UDim2.new(0, 600, 0, 500)
-    })
-    
     self.MainFrame.Size = UDim2.new(0, 0, 0, 0)
     self.MainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+    self.MainFrame.BackgroundTransparency = 1
+    self.TitleBar.BackgroundTransparency = 1
+    self.TabContainer.BackgroundTransparency = 1
+    self.ContentContainer.BackgroundTransparency = 1
+    self.TitleLabel.TextTransparency = 1
+    self.CloseButton.BackgroundTransparency = 1
+    self.CloseButton.TextTransparency = 1
     
-    openTween:Play()
+    local openTween = bounceTween(self.MainFrame, 0.6, {
+        Size = UDim2.new(0, 600, 0, 500),
+        BackgroundTransparency = 0
+    })
+    
     openTween.Completed:Connect(function()
         self.MainFrame.Position = UDim2.new(0.5, -300, 0.5, -250)
+        
+        smoothTween(self.TitleBar, 0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, {BackgroundTransparency = 0})
+        smoothTween(self.TabContainer, 0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, {BackgroundTransparency = 0})
+        smoothTween(self.ContentContainer, 0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, {BackgroundTransparency = 0})
+        smoothTween(self.TitleLabel, 0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, {TextTransparency = 0})
+        smoothTween(self.CloseButton, 0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, {BackgroundTransparency = 0, TextTransparency = 0})
+        
+        glowEffect(self.MainFrame, Color3.new(0.2, 0.4, 0.8), 0.4)
     end)
     
     return self
@@ -222,22 +365,27 @@ function Library:CreateTab(name, icon)
     end)
     
     tab.Button.MouseButton1Click:Connect(function()
+        createRipple(tab.Button, UserInputService:GetMouseLocation())
+        pulseTween(tab.Button, 0.1, 0.95)
         self:SelectTab(tab)
     end)
     
     tab.Button.MouseEnter:Connect(function()
         if self.CurrentTab ~= tab then
-            createTween(tab.Button, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {
-                BackgroundColor3 = Color3.new(0.15, 0.15, 0.18)
-            }):Play()
+            smoothTween(tab.Button, 0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, {
+                BackgroundColor3 = Color3.new(0.15, 0.15, 0.18),
+                Size = UDim2.new(1, -8, 0, 37)
+            })
+            slideIn(tab.Button, "right", 0.2)
         end
     end)
     
     tab.Button.MouseLeave:Connect(function()
         if self.CurrentTab ~= tab then
-            createTween(tab.Button, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {
-                BackgroundColor3 = Color3.new(0.1, 0.1, 0.12)
-            }):Play()
+            smoothTween(tab.Button, 0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, {
+                BackgroundColor3 = Color3.new(0.1, 0.1, 0.12),
+                Size = UDim2.new(1, -10, 0, 35)
+            })
         end
     end)
     
@@ -252,17 +400,31 @@ end
 
 function Library:SelectTab(tab)
     if self.CurrentTab then
-        createTween(self.CurrentTab.Button, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {
-            BackgroundColor3 = Color3.new(0.1, 0.1, 0.12)
-        }):Play()
-        self.CurrentTab.Content.Visible = false
+        smoothTween(self.CurrentTab.Button, 0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, {
+            BackgroundColor3 = Color3.new(0.1, 0.1, 0.12),
+            Size = UDim2.new(1, -10, 0, 35)
+        })
+        
+        smoothTween(self.CurrentTab.Content, 0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In, {
+            Position = UDim2.new(-0.1, 0, 0, 0)
+        }).Completed:Connect(function()
+            self.CurrentTab.Content.Visible = false
+            self.CurrentTab.Content.Position = UDim2.new(0, 0, 0, 0)
+        end)
     end
     
     self.CurrentTab = tab
-    createTween(tab.Button, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {
-        BackgroundColor3 = Color3.new(0.2, 0.4, 0.8)
-    }):Play()
+    
+    bounceTween(tab.Button, 0.3, {
+        BackgroundColor3 = Color3.new(0.2, 0.4, 0.8),
+        Size = UDim2.new(1, -5, 0, 38)
+    })
+    
+    glowEffect(tab.Button, Color3.new(0.2, 0.4, 0.8), 0.6)
+    
     tab.Content.Visible = true
+    tab.Content.Position = UDim2.new(0.1, 0, 0, 0)
+    slideIn(tab.Content, "right", 0.3)
 end
 
 function Library:CreateButton(tab, text, callback)
@@ -276,27 +438,41 @@ function Library:CreateButton(tab, text, callback)
     addCorner(button, 6)
     addStroke(button, Color3.new(0.2, 0.2, 0.25))
     
+    fadeIn(button, 0.3)
+    slideIn(button, "left", 0.3)
+    
     button.MouseButton1Click:Connect(function()
-        createTween(button, TweenInfo.new(0.1, Enum.EasingStyle.Quad), {
-            BackgroundColor3 = Color3.new(0.2, 0.4, 0.8)
-        }):Play()
-        wait(0.1)
-        createTween(button, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {
-            BackgroundColor3 = Color3.new(0.12, 0.12, 0.15)
-        }):Play()
+        createRipple(button, UserInputService:GetMouseLocation())
+        
+        local clickTween = smoothTween(button, 0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, {
+            BackgroundColor3 = Color3.new(0.2, 0.4, 0.8),
+            Size = UDim2.new(1, -18, 0, 33)
+        })
+        
+        clickTween.Completed:Connect(function()
+            smoothTween(button, 0.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out, {
+                BackgroundColor3 = Color3.new(0.12, 0.12, 0.15),
+                Size = UDim2.new(1, -20, 0, 35)
+            })
+        end)
+        
+        glowEffect(button, Color3.new(0.2, 0.4, 0.8), 0.7)
         if callback then callback() end
     end)
     
     button.MouseEnter:Connect(function()
-        createTween(button, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {
-            BackgroundColor3 = Color3.new(0.15, 0.15, 0.18)
-        }):Play()
+        smoothTween(button, 0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, {
+            BackgroundColor3 = Color3.new(0.15, 0.15, 0.18),
+            Size = UDim2.new(1, -18, 0, 37)
+        })
+        pulseTween(button, 0.15, 1.02)
     end)
     
     button.MouseLeave:Connect(function()
-        createTween(button, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {
-            BackgroundColor3 = Color3.new(0.12, 0.12, 0.15)
-        }):Play()
+        smoothTween(button, 0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, {
+            BackgroundColor3 = Color3.new(0.12, 0.12, 0.15),
+            Size = UDim2.new(1, -20, 0, 35)
+        })
     end)
     
     return button
@@ -341,19 +517,28 @@ function Library:CreateToggle(tab, text, default, callback)
     local function toggle()
         isToggled = not isToggled
         
+        pulseTween(toggleButton, 0.1, 1.05)
+        
         local bgColor = isToggled and Color3.new(0.2, 0.4, 0.8) or Color3.new(0.3, 0.3, 0.35)
         local circlePos = isToggled and UDim2.new(1, -18, 0, 2) or UDim2.new(0, 2, 0, 2)
         
-        createTween(toggleButton, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {
+        smoothTween(toggleButton, 0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out, {
             BackgroundColor3 = bgColor
-        }):Play()
+        })
         
-        createTween(toggleCircle, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {
+        elasticTween(toggleCircle, 0.4, {
             Position = circlePos
-        }):Play()
+        })
+        
+        if isToggled then
+            glowEffect(toggleButton, Color3.new(0.2, 0.4, 0.8), 0.5)
+        end
         
         if callback then callback(isToggled) end
     end
+    
+    fadeIn(toggleFrame, 0.3)
+    slideIn(toggleFrame, "right", 0.3)
     
     local clickDetector = createTextButton(toggleFrame, {
         Size = UDim2.new(1, 0, 1, 0),
@@ -432,23 +617,27 @@ function Library:CreateSlider(tab, text, min, max, default, callback)
         currentValue = math.clamp(value, min, max)
         local percentage = (currentValue - min) / (max - min)
         
-        createTween(sliderFill, TweenInfo.new(0.1, Enum.EasingStyle.Quad), {
+        smoothTween(sliderFill, 0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, {
             Size = UDim2.new(percentage, 0, 1, 0)
-        }):Play()
+        })
         
-        createTween(sliderHandle, TweenInfo.new(0.1, Enum.EasingStyle.Quad), {
+        bounceTween(sliderHandle, 0.2, {
             Position = UDim2.new(percentage, -6, 0.5, -6)
-        }):Play()
+        })
         
         valueLabel.Text = tostring(math.floor(currentValue))
         if callback then callback(currentValue) end
     end
     
     updateSlider(currentValue)
+    fadeIn(sliderFrame, 0.3)
+    slideIn(sliderFrame, "up", 0.3)
     
     sliderTrack.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
             dragging = true
+            pulseTween(sliderHandle, 0.1, 1.2)
+            glowEffect(sliderHandle, Color3.new(0.2, 0.4, 0.8), 0.6)
         end
     end)
     
@@ -576,18 +765,35 @@ function Library:CreateDropdown(tab, text, options, default, callback)
         Text = ""
     })
     
+    fadeIn(dropdownFrame, 0.3)
+    slideIn(dropdownFrame, "down", 0.3)
+    
     clickDetector.MouseButton1Click:Connect(function()
         isOpen = not isOpen
+        
+        pulseTween(dropdownFrame, 0.1, 0.98)
+        createRipple(dropdownFrame, UserInputService:GetMouseLocation())
+        
         optionsList.Visible = isOpen
         
         local arrowRotation = isOpen and 180 or 0
         local listSize = isOpen and UDim2.new(1, -20, 0, #options * 30) or UDim2.new(1, -20, 0, 0)
         
-        createTween(arrow, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {
+        elasticTween(arrow, 0.4, {
             Rotation = arrowRotation
-        }):Play()
+        })
         
-        createTween(optionsList, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {
+        if isOpen then
+            bounceTween(optionsList, 0.4, {
+                Size = listSize
+            })
+            glowEffect(optionsList, Color3.new(0.2, 0.4, 0.8), 0.3)
+        else
+            smoothTween(optionsList, 0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In, {
+                Size = listSize
+            })
+        end
+    end)Info.new(0.2, Enum.EasingStyle.Quad), {
             Size = listSize
         }):Play()
     end)
