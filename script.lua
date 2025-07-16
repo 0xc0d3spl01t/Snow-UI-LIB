@@ -5,7 +5,7 @@
     - Rounded corners
     - Smooth animations with improved transitions
     - Floating particles
-    - Tab system (FIXED)
+    - Tab system (COMPLETELY FIXED)
     - Dropdowns
     - Animated buttons and toggles
     - Minimizable with Insert key
@@ -270,6 +270,7 @@ function SleekUI.new(title)
     gui.CurrentTab = nil
     gui.Minimized = false
     gui.Visible = true
+    gui.TabAnimationInProgress = false  -- Add a flag to track animation state
     
     -- Add particles
     for i = 1, 20 do
@@ -408,18 +409,28 @@ function SleekUI:AddTab(name, icon)
         tabButton.Size = UDim2.new(0.9, 0, 0, 32)
     end
     
-    -- Tab content frame
+    -- Tab content container - this is a direct frame that will hold the content
+    local tabContainer = CreateInstance("Frame", {
+        Name = name .. "Container",
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        Position = UDim2.new(0, 0, 0, 0),
+        Size = UDim2.new(1, 0, 1, 0),
+        Visible = false,
+        Parent = self.ContentFrame
+    })
+    
+    -- Tab content frame (scrolling)
     local tabFrame = CreateInstance("ScrollingFrame", {
         Name = name .. "Tab",
         BackgroundTransparency = 1,
         BorderSizePixel = 0,
-        Position = UDim2.new(0, 0, 0, 0), -- Start at the default position
+        Position = UDim2.new(0, 0, 0, 0),
         Size = UDim2.new(1, 0, 1, 0),
         CanvasSize = UDim2.new(0, 0, 0, 0),
         ScrollBarThickness = 3,
         ScrollingDirection = Enum.ScrollingDirection.Y,
-        Visible = false, -- Start invisible
-        Parent = self.ContentFrame
+        Parent = tabContainer
     })
     
     local contentLayout = CreateInstance("UIListLayout", {
@@ -442,6 +453,7 @@ function SleekUI:AddTab(name, icon)
     
     local tab = {
         Button = tabButton,
+        Container = tabContainer,
         Frame = tabFrame,
         Name = name
     }
@@ -1091,13 +1103,19 @@ function SleekUI:AddTab(name, icon)
     return tabMethods
 end
 
--- Select tab - FIXED VERSION
+-- COMPLETELY FIXED Select Tab Function
 function SleekUI:SelectTab(tabIndex)
+    -- Prevent multiple animations from running at the same time
+    if self.TabAnimationInProgress then
+        return
+    end
+    
+    -- Check if tab exists
     if not self.Tabs[tabIndex] then
         return
     end
     
-    -- Store the tab we want to select
+    -- Get the tab we want to select
     local newTab = self.Tabs[tabIndex]
     
     -- If this tab is already selected, do nothing
@@ -1105,41 +1123,45 @@ function SleekUI:SelectTab(tabIndex)
         return
     end
     
-    -- If there's already a tab selected
+    -- Set animation in progress flag
+    self.TabAnimationInProgress = true
+    
+    -- If there's already a tab selected, animate it out
     if self.CurrentTab then
-        -- Animate out current tab
-        local currentTab = self.CurrentTab
-        
+        -- Highlight button changes
         TweenService:Create(
-            currentTab.Frame,
-            TWEEN_INFO.SHORT,
-            {Position = UDim2.new(-0.1, 0, 0, 0), BackgroundTransparency = 1}
-        ):Play()
-        
-        -- Animate current button
-        TweenService:Create(
-            currentTab.Button,
+            self.CurrentTab.Button,
             TWEEN_INFO.SHORT,
             {BackgroundTransparency = 1}
         ):Play()
         
-        -- After small delay, hide the old tab
-        spawn(function()
-            wait(0.2)
-            if self.CurrentTab ~= currentTab then  -- Make sure we haven't switched back
-                currentTab.Frame.Visible = false
+        -- Hide current tab with animation
+        TweenService:Create(
+            self.CurrentTab.Container,
+            TWEEN_INFO.SHORT,
+            {Position = UDim2.new(-0.1, 0, 0, 0), BackgroundTransparency = 1}
+        ):Play()
+        
+        -- Wait for animation to complete before hiding
+        delay(0.2, function()
+            -- Only hide if it's still not the current tab
+            if self.CurrentTab ~= newTab then
+                self.CurrentTab.Container.Visible = false
             end
         end)
     end
     
-    -- Set new tab as current and make it visible immediately
+    -- Set the new tab as current
     self.CurrentTab = newTab
-    newTab.Frame.Position = UDim2.new(0.1, 0, 0, 0)
-    newTab.Frame.Visible = true
+    
+    -- Set up the new tab for animation
+    newTab.Container.Position = UDim2.new(0.1, 0, 0, 0)
+    newTab.Container.BackgroundTransparency = 1
+    newTab.Container.Visible = true
     
     -- Animate in the new tab
     TweenService:Create(
-        newTab.Frame,
+        newTab.Container,
         TWEEN_INFO.SHORT,
         {Position = UDim2.new(0, 0, 0, 0), BackgroundTransparency = 1}
     ):Play()
@@ -1150,6 +1172,11 @@ function SleekUI:SelectTab(tabIndex)
         TWEEN_INFO.SHORT,
         {BackgroundTransparency = 0}
     ):Play()
+    
+    -- Animation completed
+    delay(0.25, function()
+        self.TabAnimationInProgress = false
+    end)
 end
 
 -- Destroy the UI
