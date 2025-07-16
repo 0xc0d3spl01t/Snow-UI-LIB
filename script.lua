@@ -1,14 +1,15 @@
 --[[
     SleekUI Library
-    A smooth, modern UI library for Roblox
+    A smooth, modern UI library for Roblox with transparency
     Features:
     - Rounded corners
-    - Smooth animations
-    - Particles
+    - Smooth animations with improved transitions
+    - Floating particles
     - Tab system
     - Dropdowns
     - Animated buttons and toggles
     - Minimizable with Insert key
+    - Semi-transparent elements for a modern look
 ]]
 
 local TweenService = game:GetService("TweenService")
@@ -23,12 +24,12 @@ local Mouse = Player:GetMouse()
 local SleekUI = {}
 SleekUI.__index = SleekUI
 
--- Tween info presets
+-- Tween info presets (smoother animations)
 local TWEEN_INFO = {
-    SHORT = TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-    MEDIUM = TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-    LONG = TweenInfo.new(0.5, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out),
-    BOUNCE = TweenInfo.new(0.5, Enum.EasingStyle.Bounce, Enum.EasingDirection.Out)
+    SHORT = TweenInfo.new(0.2, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out),
+    MEDIUM = TweenInfo.new(0.3, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out),
+    LONG = TweenInfo.new(0.6, Enum.EasingStyle.Cubic, Enum.EasingDirection.InOut),
+    BOUNCE = TweenInfo.new(0.6, Enum.EasingStyle.Bounce, Enum.EasingDirection.Out)
 }
 
 -- Colors
@@ -42,6 +43,13 @@ local COLORS = {
     PARTICLE = Color3.fromRGB(255, 255, 255),
     SUCCESS = Color3.fromRGB(87, 212, 145),
     ERROR = Color3.fromRGB(240, 71, 71)
+}
+
+-- Transparency settings
+local TRANSPARENCY = {
+    BACKGROUND = 0.15,    -- Main background transparency
+    ELEMENT = 0.1,        -- UI elements transparency
+    SECONDARY = 0.25      -- Secondary elements transparency
 }
 
 -- Utility functions
@@ -65,7 +73,7 @@ local function CreateParticle(parent)
     local size = math.random(2, 4)
     local particle = CreateInstance("Frame", {
         BackgroundColor3 = COLORS.PARTICLE,
-        BackgroundTransparency = 0.7,
+        BackgroundTransparency = 0.8,
         Position = UDim2.new(math.random(), 0, math.random(), 0),
         Size = UDim2.fromOffset(size, size),
         BorderSizePixel = 0,
@@ -76,7 +84,7 @@ local function CreateParticle(parent)
     
     -- Random movement
     spawn(function()
-        local speed = math.random(20, 50) / 100
+        local speed = math.random(15, 40) / 100
         local direction = Vector2.new(math.random(-10, 10) / 10, math.random(-10, 10) / 10).Unit
         
         while particle and particle.Parent do
@@ -119,6 +127,7 @@ function SleekUI.new(title)
     gui.MainFrame = CreateInstance("Frame", {
         Name = "MainFrame",
         BackgroundColor3 = COLORS.BACKGROUND,
+        BackgroundTransparency = TRANSPARENCY.BACKGROUND,
         BorderSizePixel = 0,
         Position = UDim2.new(0.5, -300, 0.5, -175),
         Size = UDim2.new(0, 600, 0, 350),
@@ -136,7 +145,7 @@ function SleekUI.new(title)
         ZIndex = -1,
         Image = "rbxassetid://6015897843",
         ImageColor3 = Color3.new(0, 0, 0),
-        ImageTransparency = 0.5,
+        ImageTransparency = 0.6,
         ScaleType = Enum.ScaleType.Slice,
         SliceCenter = Rect.new(49, 49, 450, 450),
         Parent = gui.MainFrame
@@ -146,6 +155,7 @@ function SleekUI.new(title)
     gui.TopBar = CreateInstance("Frame", {
         Name = "TopBar",
         BackgroundColor3 = COLORS.ACCENT,
+        BackgroundTransparency = TRANSPARENCY.ELEMENT,
         BorderSizePixel = 0,
         Size = UDim2.new(1, 0, 0, 30),
         Parent = gui.MainFrame
@@ -207,6 +217,7 @@ function SleekUI.new(title)
     gui.TabButtonsFrame = CreateInstance("Frame", {
         Name = "TabButtonsFrame",
         BackgroundColor3 = COLORS.ELEMENT_BG,
+        BackgroundTransparency = TRANSPARENCY.ELEMENT,
         BorderSizePixel = 0,
         Position = UDim2.new(0, 10, 0, 10),
         Size = UDim2.new(0, 120, 1, -20),
@@ -245,6 +256,7 @@ function SleekUI.new(title)
     gui.ContentFrame = CreateInstance("Frame", {
         Name = "ContentFrame",
         BackgroundColor3 = COLORS.ELEMENT_BG,
+        BackgroundTransparency = TRANSPARENCY.ELEMENT,
         BorderSizePixel = 0,
         Position = UDim2.new(0, 140, 0, 10),
         Size = UDim2.new(1, -150, 1, -20),
@@ -259,7 +271,7 @@ function SleekUI.new(title)
     gui.Visible = true
     
     -- Add particles
-    for i = 1, 15 do
+    for i = 1, 20 do
         CreateParticle(gui.ContentFrame)
     end
     
@@ -455,19 +467,19 @@ function SleekUI:AddTab(name, icon)
         local section = CreateInstance("Frame", {
             Name = sectionName .. "Section",
             BackgroundColor3 = Color3.fromRGB(35, 35, 40),
-            BackgroundTransparency = 0.4,
+            BackgroundTransparency = TRANSPARENCY.SECONDARY,
             BorderSizePixel = 0,
             Size = UDim2.new(1, 0, 0, 36), -- Initial size, will grow
             LayoutOrder = #tabFrame:GetChildren(),
             Parent = tabFrame
         })
-        ApplyRounding(section, 6)
+        ApplyRounding(section, 8)
         
         local sectionTitle = CreateInstance("TextLabel", {
             Name = "Title",
             BackgroundTransparency = 1,
-            Position = UDim2.new(0, 8, 0, 8),
-            Size = UDim2.new(1, -16, 0, 20),
+            Position = UDim2.new(0, 10, 0, 8),
+            Size = UDim2.new(1, -20, 0, 20),
             Font = Enum.Font.GothamBold,
             Text = sectionName,
             TextColor3 = COLORS.ACCENT,
@@ -479,20 +491,20 @@ function SleekUI:AddTab(name, icon)
         local sectionContent = CreateInstance("Frame", {
             Name = "Content",
             BackgroundTransparency = 1,
-            Position = UDim2.new(0, 8, 0, 36),
-            Size = UDim2.new(1, -16, 1, -44),
+            Position = UDim2.new(0, 10, 0, 36),
+            Size = UDim2.new(1, -20, 1, -44),
             Parent = section
         })
         
         local sectionLayout = CreateInstance("UIListLayout", {
-            Padding = UDim.new(0, 6),
+            Padding = UDim.new(0, 8),
             SortOrder = Enum.SortOrder.LayoutOrder,
             Parent = sectionContent
         })
         
         -- Auto-adjust section size based on content
         sectionLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-            section.Size = UDim2.new(1, 0, 0, sectionLayout.AbsoluteContentSize.Y + 44)
+            section.Size = UDim2.new(1, 0, 0, sectionLayout.AbsoluteContentSize.Y + 46)
         end)
         
         local sectionMethods = {}
@@ -505,7 +517,7 @@ function SleekUI:AddTab(name, icon)
                 Size = UDim2.new(1, 0, 0, 24),
                 Font = Enum.Font.Gotham,
                 Text = text,
-                TextColor3 = COLORS.TEXT_SECONDARY,
+                TextColor3 = COLORS.TEXT_PRIMARY,
                 TextSize = 14,
                 TextWrapped = true,
                 TextXAlignment = Enum.TextXAlignment.Left,
@@ -514,7 +526,7 @@ function SleekUI:AddTab(name, icon)
             
             -- Animate text color from white to darker
             spawn(function()
-                local tweenInfo = TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.Out)
+                local tweenInfo = TweenInfo.new(1.8, Enum.EasingStyle.Sine, Enum.EasingDirection.Out)
                 TweenService:Create(
                     label,
                     tweenInfo,
@@ -530,7 +542,7 @@ function SleekUI:AddTab(name, icon)
                 
                 -- Re-animate
                 spawn(function()
-                    local tweenInfo = TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.Out)
+                    local tweenInfo = TweenInfo.new(1.8, Enum.EasingStyle.Sine, Enum.EasingDirection.Out)
                     TweenService:Create(
                         label,
                         tweenInfo,
@@ -547,6 +559,7 @@ function SleekUI:AddTab(name, icon)
             local button = CreateInstance("TextButton", {
                 Name = "Button",
                 BackgroundColor3 = COLORS.ELEMENT_HOVER,
+                BackgroundTransparency = TRANSPARENCY.ELEMENT,
                 BorderSizePixel = 0,
                 Size = UDim2.new(1, 0, 0, 32),
                 Font = Enum.Font.Gotham,
@@ -562,7 +575,7 @@ function SleekUI:AddTab(name, icon)
                 TweenService:Create(
                     button,
                     TWEEN_INFO.SHORT,
-                    {BackgroundColor3 = COLORS.ACCENT}
+                    {BackgroundColor3 = COLORS.ACCENT, BackgroundTransparency = TRANSPARENCY.ELEMENT * 0.5}
                 ):Play()
             end)
             
@@ -570,7 +583,7 @@ function SleekUI:AddTab(name, icon)
                 TweenService:Create(
                     button,
                     TWEEN_INFO.SHORT,
-                    {BackgroundColor3 = COLORS.ELEMENT_HOVER}
+                    {BackgroundColor3 = COLORS.ELEMENT_HOVER, BackgroundTransparency = TRANSPARENCY.ELEMENT}
                 ):Play()
             end)
             
@@ -607,11 +620,11 @@ function SleekUI:AddTab(name, icon)
                 
                 TweenService:Create(
                     ripple,
-                    TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+                    TweenInfo.new(0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
                     {Size = UDim2.new(1.5, 0, 1.5, 0), BackgroundTransparency = 1}
                 ):Play()
                 
-                game.Debris:AddItem(ripple, 0.5)
+                game.Debris:AddItem(ripple, 0.6)
             end)
             
             local buttonMethods = {}
@@ -646,6 +659,7 @@ function SleekUI:AddTab(name, icon)
             
             local toggleButton = CreateInstance("Frame", {
                 BackgroundColor3 = default and COLORS.ACCENT or COLORS.ELEMENT_BG,
+                BackgroundTransparency = TRANSPARENCY.ELEMENT,
                 BorderSizePixel = 0,
                 Position = UDim2.new(1, -40, 0.5, -10),
                 Size = UDim2.new(0, 40, 0, 20),
@@ -655,6 +669,7 @@ function SleekUI:AddTab(name, icon)
             
             local thumb = CreateInstance("Frame", {
                 BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+                BackgroundTransparency = 0.1,
                 BorderSizePixel = 0,
                 Position = default and UDim2.new(0.5, 0, 0.5, -8) or UDim2.new(0, 2, 0.5, -8),
                 Size = UDim2.new(0, 16, 0, 16),
@@ -682,7 +697,7 @@ function SleekUI:AddTab(name, icon)
                 
                 TweenService:Create(
                     thumb,
-                    TWEEN_INFO.SHORT,
+                    TWEEN_INFO.MEDIUM,
                     {Position = toggled and UDim2.new(0.5, 0, 0.5, -8) or UDim2.new(0, 2, 0.5, -8)}
                 ):Play()
                 
@@ -730,6 +745,7 @@ function SleekUI:AddTab(name, icon)
             
             local dropdownButton = CreateInstance("TextButton", {
                 BackgroundColor3 = COLORS.ELEMENT_HOVER,
+                BackgroundTransparency = TRANSPARENCY.ELEMENT,
                 BorderSizePixel = 0,
                 Position = UDim2.new(0, 0, 0, 22),
                 Size = UDim2.new(1, 0, 0, 30),
@@ -752,6 +768,7 @@ function SleekUI:AddTab(name, icon)
             
             local optionContainer = CreateInstance("Frame", {
                 BackgroundColor3 = COLORS.ELEMENT_BG,
+                BackgroundTransparency = TRANSPARENCY.ELEMENT,
                 BorderSizePixel = 0,
                 Position = UDim2.new(0, 0, 0, 54),
                 Size = UDim2.new(1, 0, 0, #options * 30),
@@ -790,7 +807,7 @@ function SleekUI:AddTab(name, icon)
                         {Rotation = 0}
                     ):Play()
                     
-                    wait(0.1)
+                    wait(0.15)
                     optionContainer.Visible = false
                     dropdown.Size = UDim2.new(1, 0, 0, 52)
                 end
@@ -815,7 +832,7 @@ function SleekUI:AddTab(name, icon)
                     TweenService:Create(
                         optionButton,
                         TWEEN_INFO.SHORT,
-                        {BackgroundColor3 = COLORS.ACCENT}
+                        {BackgroundColor3 = COLORS.ACCENT, BackgroundTransparency = 0.2}
                     ):Play()
                 end)
                 
@@ -823,7 +840,7 @@ function SleekUI:AddTab(name, icon)
                     TweenService:Create(
                         optionButton,
                         TWEEN_INFO.SHORT,
-                        {BackgroundColor3 = COLORS.ELEMENT_BG}
+                        {BackgroundColor3 = COLORS.ELEMENT_BG, BackgroundTransparency = 0.2}
                     ):Play()
                 end)
                 
@@ -891,7 +908,7 @@ function SleekUI:AddTab(name, icon)
             return dropdownMethods
         end
         
-        -- Slider
+        -- Slider (Fixed and improved)
         function sectionMethods:AddSlider(text, min, max, default, precision, callback)
             local slider = CreateInstance("Frame", {
                 Name = "Slider",
@@ -924,8 +941,13 @@ function SleekUI:AddTab(name, icon)
                 Parent = slider
             })
             
+            -- Default value handling
+            default = default or min
+            default = math.clamp(default, min, max)
+            
             local sliderBg = CreateInstance("Frame", {
                 BackgroundColor3 = COLORS.ELEMENT_BG,
+                BackgroundTransparency = TRANSPARENCY.ELEMENT,
                 BorderSizePixel = 0,
                 Position = UDim2.new(0, 0, 0, 25),
                 Size = UDim2.new(1, 0, 0, 8),
@@ -933,18 +955,23 @@ function SleekUI:AddTab(name, icon)
             })
             ApplyRounding(sliderBg, 4)
             
+            local initialScale = (default - min) / (max - min)
+            
             local sliderFill = CreateInstance("Frame", {
                 BackgroundColor3 = COLORS.ACCENT,
+                BackgroundTransparency = TRANSPARENCY.ELEMENT * 0.5,
                 BorderSizePixel = 0,
-                Size = UDim2.new(((default or min) - min) / (max - min), 0, 1, 0),
+                Size = UDim2.new(initialScale, 0, 1, 0),
                 Parent = sliderBg
             })
             ApplyRounding(sliderFill, 4)
             
             local sliderKnob = CreateInstance("Frame", {
                 BackgroundColor3 = COLORS.TEXT_PRIMARY,
+                BackgroundTransparency = 0.1,
                 BorderSizePixel = 0,
-                Position = UDim2.new(1, -8, 0.5, -8),
+                AnchorPoint = Vector2.new(0.5, 0.5),
+                Position = UDim2.new(1, 0, 0.5, 0),
                 Size = UDim2.new(0, 16, 0, 16),
                 ZIndex = 2,
                 Parent = sliderFill
@@ -953,63 +980,88 @@ function SleekUI:AddTab(name, icon)
             
             local sliderBtn = CreateInstance("TextButton", {
                 BackgroundTransparency = 1,
-                Size = UDim2.new(1, 0, 1, 20),
-                Position = UDim2.new(0, 0, 0, -10),
+                Position = UDim2.new(0, 0, 0, -5),
+                Size = UDim2.new(1, 0, 0, 20),
                 Text = "",
                 Parent = sliderBg
             })
             
-            local value = default or min
+            -- Value variables
+            local value = default
             precision = precision or 0
             
-            local function updateSlider(input)
-                local pos = UDim2.new(
-                    math.clamp((input.Position.X - sliderBg.AbsolutePosition.X) / sliderBg.AbsoluteSize.X, 0, 1),
-                    0,
-                    1,
-                    0
-                )
-                
-                sliderFill.Size = pos
-                
-                local newValue = min + ((max - min) * pos.X.Scale)
+            -- Function to update slider position and value
+            local function updateSliderVisual(newValue)
+                local newScale = (newValue - min) / (max - min)
+                sliderFill.Size = UDim2.new(newScale, 0, 1, 0)
+                valueLabel.Text = tostring(newValue)
+            end
+            
+            -- Function to get value from X position
+            local function getValueFromPosition(posX)
+                local percentage = math.clamp((posX - sliderBg.AbsolutePosition.X) / sliderBg.AbsoluteSize.X, 0, 1)
+                local rawValue = min + ((max - min) * percentage)
                 
                 if precision == 0 then
-                    newValue = math.floor(newValue)
+                    return math.floor(rawValue)
                 else
-                    newValue = math.floor(newValue * (10 ^ precision)) / (10 ^ precision)
-                end
-                
-                if newValue ~= value then
-                    value = newValue
-                    valueLabel.Text = tostring(value)
-                    callback(value)
+                    return math.floor(rawValue * (10 ^ precision)) / (10 ^ precision)
                 end
             end
             
-            sliderBtn.MouseButton1Down:Connect(function(input)
-                updateSlider({Position = input})
-                
-                local connection
-                connection = UserInputService.InputChanged:Connect(function(input)
-                    if input.UserInputType == Enum.UserInputType.MouseMovement then
-                        updateSlider(input)
-                    end
-                end)
-                
-                UserInputService.InputEnded:Connect(function(input)
-                    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                        if connection then
-                            connection:Disconnect()
-                        end
-                    end
-                end)
+            -- Update slider on click or drag
+            local isDragging = false
+            
+            sliderBtn.MouseButton1Down:Connect(function()
+                isDragging = true
+                local newValue = getValueFromPosition(Mouse.X)
+                if newValue ~= value then
+                    value = newValue
+                    updateSliderVisual(value)
+                    callback(value)
+                end
             end)
             
+            UserInputService.InputChanged:Connect(function(input)
+                if isDragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+                    local newValue = getValueFromPosition(input.Position.X)
+                    if newValue ~= value then
+                        value = newValue
+                        updateSliderVisual(value)
+                        callback(value)
+                    end
+                end
+            end)
+            
+            UserInputService.InputEnded:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                    isDragging = false
+                end
+            end)
+            
+            -- Animation effects for slider
+            sliderBtn.MouseEnter:Connect(function()
+                TweenService:Create(sliderFill, TWEEN_INFO.SHORT, 
+                    {BackgroundTransparency = 0}):Play()
+                TweenService:Create(sliderKnob, TWEEN_INFO.SHORT, 
+                    {Size = UDim2.new(0, 18, 0, 18), BackgroundTransparency = 0}):Play()
+            end)
+            
+            sliderBtn.MouseLeave:Connect(function()
+                if not isDragging then
+                    TweenService:Create(sliderFill, TWEEN_INFO.SHORT, 
+                        {BackgroundTransparency = TRANSPARENCY.ELEMENT * 0.5}):Play()
+                    TweenService:Create(sliderKnob, TWEEN_INFO.SHORT, 
+                        {Size = UDim2.new(0, 16, 0, 16), BackgroundTransparency = 0.1}):Play()
+                end
+            end)
+            
+            -- Methods
             local sliderMethods = {}
             
             function sliderMethods:SetValue(newValue)
                 newValue = math.clamp(newValue, min, max)
+                
                 if precision == 0 then
                     newValue = math.floor(newValue)
                 else
@@ -1017,10 +1069,7 @@ function SleekUI:AddTab(name, icon)
                 end
                 
                 value = newValue
-                valueLabel.Text = tostring(value)
-                
-                local pos = (value - min) / (max - min)
-                sliderFill.Size = UDim2.new(pos, 0, 1, 0)
+                updateSliderVisual(value)
                 callback(value)
             end
             
@@ -1028,9 +1077,8 @@ function SleekUI:AddTab(name, icon)
                 return value
             end
             
-            if default then
-                sliderMethods:SetValue(default)
-            end
+            -- Set initial value
+            updateSliderVisual(value)
             
             return sliderMethods
         end
@@ -1049,7 +1097,17 @@ function SleekUI:SelectTab(tabIndex)
     
     -- Deselect current tab
     if self.CurrentTab then
-        self.CurrentTab.Frame.Visible = false
+        TweenService:Create(
+            self.CurrentTab.Frame,
+            TWEEN_INFO.SHORT,
+            {Position = UDim2.new(0.1, 0, 0, 0), BackgroundTransparency = 1}
+        ):Play()
+        
+        spawn(function()
+            wait(0.15)
+            self.CurrentTab.Frame.Visible = false
+        end)
+        
         TweenService:Create(
             self.CurrentTab.Button,
             TWEEN_INFO.SHORT,
@@ -1059,7 +1117,14 @@ function SleekUI:SelectTab(tabIndex)
     
     -- Select new tab
     self.CurrentTab = self.Tabs[tabIndex]
+    self.CurrentTab.Frame.Position = UDim2.new(-0.1, 0, 0, 0)
     self.CurrentTab.Frame.Visible = true
+    
+    TweenService:Create(
+        self.CurrentTab.Frame,
+        TWEEN_INFO.MEDIUM,
+        {Position = UDim2.new(0, 0, 0, 0), BackgroundTransparency = 1}
+    ):Play()
     
     TweenService:Create(
         self.CurrentTab.Button,
@@ -1070,9 +1135,19 @@ end
 
 -- Destroy the UI
 function SleekUI:Destroy()
-    if self.ScreenGui then
-        self.ScreenGui:Destroy()
-    end
+    local fadeOut = TweenService:Create(
+        self.MainFrame, 
+        TWEEN_INFO.MEDIUM, 
+        {BackgroundTransparency = 1}
+    )
+    
+    fadeOut.Completed:Connect(function()
+        if self.ScreenGui then
+            self.ScreenGui:Destroy()
+        end
+    end)
+    
+    fadeOut:Play()
 end
 
 return SleekUI
