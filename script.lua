@@ -5,7 +5,7 @@
     - Rounded corners
     - Smooth animations with improved transitions
     - Floating particles
-    - Tab system
+    - Tab system (FIXED)
     - Dropdowns
     - Animated buttons and toggles
     - Minimizable with Insert key
@@ -260,6 +260,7 @@ function SleekUI.new(title)
         BorderSizePixel = 0,
         Position = UDim2.new(0, 140, 0, 10),
         Size = UDim2.new(1, -150, 1, -20),
+        ClipsDescendants = true, -- Important for tab animations
         Parent = gui.TabContainer
     })
     ApplyRounding(gui.ContentFrame, 6)
@@ -412,11 +413,12 @@ function SleekUI:AddTab(name, icon)
         Name = name .. "Tab",
         BackgroundTransparency = 1,
         BorderSizePixel = 0,
+        Position = UDim2.new(0, 0, 0, 0), -- Start at the default position
         Size = UDim2.new(1, 0, 1, 0),
         CanvasSize = UDim2.new(0, 0, 0, 0),
         ScrollBarThickness = 3,
         ScrollingDirection = Enum.ScrollingDirection.Y,
-        Visible = false,
+        Visible = false, -- Start invisible
         Parent = self.ContentFrame
     })
     
@@ -1089,45 +1091,62 @@ function SleekUI:AddTab(name, icon)
     return tabMethods
 end
 
--- Select tab
+-- Select tab - FIXED VERSION
 function SleekUI:SelectTab(tabIndex)
     if not self.Tabs[tabIndex] then
         return
     end
     
-    -- Deselect current tab
+    -- Store the tab we want to select
+    local newTab = self.Tabs[tabIndex]
+    
+    -- If this tab is already selected, do nothing
+    if self.CurrentTab and self.CurrentTab == newTab then
+        return
+    end
+    
+    -- If there's already a tab selected
     if self.CurrentTab then
+        -- Animate out current tab
+        local currentTab = self.CurrentTab
+        
         TweenService:Create(
-            self.CurrentTab.Frame,
+            currentTab.Frame,
             TWEEN_INFO.SHORT,
-            {Position = UDim2.new(0.1, 0, 0, 0), BackgroundTransparency = 1}
+            {Position = UDim2.new(-0.1, 0, 0, 0), BackgroundTransparency = 1}
         ):Play()
         
-        spawn(function()
-            wait(0.15)
-            self.CurrentTab.Frame.Visible = false
-        end)
-        
+        -- Animate current button
         TweenService:Create(
-            self.CurrentTab.Button,
+            currentTab.Button,
             TWEEN_INFO.SHORT,
             {BackgroundTransparency = 1}
         ):Play()
+        
+        -- After small delay, hide the old tab
+        spawn(function()
+            wait(0.2)
+            if self.CurrentTab ~= currentTab then  -- Make sure we haven't switched back
+                currentTab.Frame.Visible = false
+            end
+        end)
     end
     
-    -- Select new tab
-    self.CurrentTab = self.Tabs[tabIndex]
-    self.CurrentTab.Frame.Position = UDim2.new(-0.1, 0, 0, 0)
-    self.CurrentTab.Frame.Visible = true
+    -- Set new tab as current and make it visible immediately
+    self.CurrentTab = newTab
+    newTab.Frame.Position = UDim2.new(0.1, 0, 0, 0)
+    newTab.Frame.Visible = true
     
+    -- Animate in the new tab
     TweenService:Create(
-        self.CurrentTab.Frame,
-        TWEEN_INFO.MEDIUM,
+        newTab.Frame,
+        TWEEN_INFO.SHORT,
         {Position = UDim2.new(0, 0, 0, 0), BackgroundTransparency = 1}
     ):Play()
     
+    -- Highlight the button
     TweenService:Create(
-        self.CurrentTab.Button,
+        newTab.Button,
         TWEEN_INFO.SHORT,
         {BackgroundTransparency = 0}
     ):Play()
