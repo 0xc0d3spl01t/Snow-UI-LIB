@@ -5,7 +5,7 @@
     - Rounded corners
     - Smooth animations with improved transitions
     - Floating particles
-    - Tab system (COMPLETELY FIXED)
+    - Tab system (COMPLETELY FIXED - No overlapping)
     - Dropdowns
     - Animated buttons and toggles
     - Minimizable with Insert key
@@ -271,6 +271,7 @@ function SleekUI.new(title)
     gui.Minimized = false
     gui.Visible = true
     gui.TabAnimationInProgress = false  -- Add a flag to track animation state
+    gui.ActiveTab = nil -- Track currently active tab
     
     -- Add particles
     for i = 1, 20 do
@@ -416,7 +417,7 @@ function SleekUI:AddTab(name, icon)
         BorderSizePixel = 0,
         Position = UDim2.new(0, 0, 0, 0),
         Size = UDim2.new(1, 0, 1, 0),
-        Visible = false,
+        Visible = false,  -- Start hidden
         Parent = self.ContentFrame
     })
     
@@ -455,7 +456,8 @@ function SleekUI:AddTab(name, icon)
         Button = tabButton,
         Container = tabContainer,
         Frame = tabFrame,
-        Name = name
+        Name = name,
+        Index = tabIndex
     }
     
     table.insert(self.Tabs, tab)
@@ -1119,52 +1121,42 @@ function SleekUI:SelectTab(tabIndex)
     local newTab = self.Tabs[tabIndex]
     
     -- If this tab is already selected, do nothing
-    if self.CurrentTab and self.CurrentTab == newTab then
+    if self.ActiveTab and self.ActiveTab.Index == tabIndex then
         return
     end
     
     -- Set animation in progress flag
     self.TabAnimationInProgress = true
     
-    -- If there's already a tab selected, animate it out
-    if self.CurrentTab then
-        -- Highlight button changes
-        TweenService:Create(
-            self.CurrentTab.Button,
-            TWEEN_INFO.SHORT,
-            {BackgroundTransparency = 1}
-        ):Play()
-        
-        -- Hide current tab with animation
-        TweenService:Create(
-            self.CurrentTab.Container,
-            TWEEN_INFO.SHORT,
-            {Position = UDim2.new(-0.1, 0, 0, 0), BackgroundTransparency = 1}
-        ):Play()
-        
-        -- Wait for animation to complete before hiding
-        delay(0.2, function()
-            -- Only hide if it's still not the current tab
-            if self.CurrentTab ~= newTab then
-                self.CurrentTab.Container.Visible = false
-            end
-        end)
+    -- HIDE ALL OTHER TABS FIRST - this is critical
+    for _, tab in pairs(self.Tabs) do
+        -- Skip the tab we're selecting
+        if tab.Index ~= tabIndex then
+            -- Immediately hide the tab
+            tab.Container.Visible = false
+            
+            -- Reset button highlight
+            TweenService:Create(
+                tab.Button,
+                TWEEN_INFO.SHORT,
+                {BackgroundTransparency = 1}
+            ):Play()
+        end
     end
-    
-    -- Set the new tab as current
-    self.CurrentTab = newTab
     
     -- Set up the new tab for animation
     newTab.Container.Position = UDim2.new(0.1, 0, 0, 0)
-    newTab.Container.BackgroundTransparency = 1
     newTab.Container.Visible = true
     
+    -- Store reference to active tab
+    self.ActiveTab = newTab
+    
     -- Animate in the new tab
-    TweenService:Create(
+    local tabInTween = TweenService:Create(
         newTab.Container,
         TWEEN_INFO.SHORT,
-        {Position = UDim2.new(0, 0, 0, 0), BackgroundTransparency = 1}
-    ):Play()
+        {Position = UDim2.new(0, 0, 0, 0)}
+    )
     
     -- Highlight the button
     TweenService:Create(
@@ -1172,6 +1164,9 @@ function SleekUI:SelectTab(tabIndex)
         TWEEN_INFO.SHORT,
         {BackgroundTransparency = 0}
     ):Play()
+    
+    -- Start animation and clean up when done
+    tabInTween:Play()
     
     -- Animation completed
     delay(0.25, function()
