@@ -3,13 +3,14 @@
     A smooth, modern UI library for Roblox with transparency
     Features:
     - Rounded corners
-    - Smooth animations with improved transitions
+    - Smooth animations
     - Floating particles
-    - Tab system (COMPLETELY FIXED - No overlapping)
+    - Tab system
     - Dropdowns
     - Animated buttons and toggles
     - Minimizable with Insert key
     - Semi-transparent elements for a modern look
+    - Notification system with close button
 ]]
 
 local TweenService = game:GetService("TweenService")
@@ -42,7 +43,9 @@ local COLORS = {
     ELEMENT_HOVER = Color3.fromRGB(50, 50, 55),
     PARTICLE = Color3.fromRGB(255, 255, 255),
     SUCCESS = Color3.fromRGB(87, 212, 145),
-    ERROR = Color3.fromRGB(240, 71, 71)
+    ERROR = Color3.fromRGB(240, 71, 71),
+    WARNING = Color3.fromRGB(250, 166, 26),
+    INFO = Color3.fromRGB(77, 172, 224)
 }
 
 -- Transparency settings
@@ -50,6 +53,17 @@ local TRANSPARENCY = {
     BACKGROUND = 0.15,    -- Main background transparency
     ELEMENT = 0.1,        -- UI elements transparency
     SECONDARY = 0.25      -- Secondary elements transparency
+}
+
+-- Notification system variables
+local NotificationSystem = {
+    Container = nil,
+    Notifications = {},
+    MaxNotifications = 5,
+    Padding = 8,
+    Width = 280,
+    DefaultHeight = 80,
+    DefaultDuration = 5
 }
 
 -- Utility functions
@@ -108,6 +122,202 @@ local function CreateParticle(parent)
     end)
     
     return particle
+end
+
+-- Initialize Notification Container
+local function InitializeNotificationSystem()
+    if NotificationSystem.Container then return end
+    
+    NotificationSystem.Container = CreateInstance("ScreenGui", {
+        Name = "SleekUINotifications",
+        ResetOnSpawn = false,
+        ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+        Parent = CoreGui
+    })
+    
+    local frame = CreateInstance("Frame", {
+        Name = "NotificationsContainer",
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        Position = UDim2.new(1, -NotificationSystem.Width - 20, 0, 20),
+        Size = UDim2.new(0, NotificationSystem.Width, 1, -40),
+        ClipsDescendants = false,
+        Parent = NotificationSystem.Container
+    })
+    
+    local listLayout = CreateInstance("UIListLayout", {
+        Padding = UDim.new(0, NotificationSystem.Padding),
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        VerticalAlignment = Enum.VerticalAlignment.Top,
+        Parent = frame
+    })
+end
+
+-- Create notification
+local function CreateNotification(title, message, notificationType, duration)
+    InitializeNotificationSystem()
+    
+    local typeColor = COLORS[notificationType:upper()] or COLORS.INFO
+    duration = duration or NotificationSystem.DefaultDuration
+    local container = NotificationSystem.Container.NotificationsContainer
+    
+    -- Cap notifications count
+    while #NotificationSystem.Notifications >= NotificationSystem.MaxNotifications do
+        local oldestNotif = NotificationSystem.Notifications[1]
+        if oldestNotif and oldestNotif.Parent then
+            oldestNotif:Destroy()
+        end
+        table.remove(NotificationSystem.Notifications, 1)
+    end
+    
+    -- Create notification frame
+    local notificationFrame = CreateInstance("Frame", {
+        Name = "Notification",
+        BackgroundColor3 = COLORS.BACKGROUND,
+        BackgroundTransparency = TRANSPARENCY.BACKGROUND - 0.05, -- Slightly less transparent than main UI
+        BorderSizePixel = 0,
+        Position = UDim2.new(1, 20, 0, 0),
+        Size = UDim2.new(1, 0, 0, NotificationSystem.DefaultHeight),
+        Parent = container,
+        LayoutOrder = #NotificationSystem.Notifications + 1
+    })
+    
+    ApplyRounding(notificationFrame, 8)
+    
+    -- Accent bar
+    local accentBar = CreateInstance("Frame", {
+        Name = "AccentBar",
+        BackgroundColor3 = typeColor,
+        BackgroundTransparency = 0,
+        BorderSizePixel = 0,
+        Position = UDim2.new(0, 0, 0, 0),
+        Size = UDim2.new(0, 4, 1, 0),
+        Parent = notificationFrame
+    })
+    
+    local accentBarCorner = CreateInstance("UICorner", {
+        CornerRadius = UDim.new(0, 4),
+        Parent = accentBar
+    })
+    
+    -- Title
+    local titleLabel = CreateInstance("TextLabel", {
+        Name = "Title",
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 14, 0, 8),
+        Size = UDim2.new(1, -54, 0, 20),
+        Font = Enum.Font.GothamBold,
+        Text = title,
+        TextColor3 = typeColor,
+        TextSize = 14,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Parent = notificationFrame
+    })
+    
+    -- Message
+    local messageLabel = CreateInstance("TextLabel", {
+        Name = "Message",
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 14, 0, 30),
+        Size = UDim2.new(1, -24, 1, -38),
+        Font = Enum.Font.Gotham,
+        Text = message,
+        TextColor3 = COLORS.TEXT_PRIMARY,
+        TextSize = 14,
+        TextWrapped = true,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        TextYAlignment = Enum.TextYAlignment.Top,
+        Parent = notificationFrame
+    })
+    
+    -- Progress bar
+    local progressBar = CreateInstance("Frame", {
+        Name = "ProgressBar",
+        BackgroundColor3 = typeColor,
+        BackgroundTransparency = 0.7,
+        BorderSizePixel = 0,
+        Position = UDim2.new(0, 4, 1, -2),
+        Size = UDim2.new(1, -8, 0, 2),
+        Parent = notificationFrame
+    })
+    
+    ApplyRounding(progressBar, 2)
+    
+    -- Close button
+    local closeButton = CreateInstance("TextButton", {
+        Name = "CloseButton",
+        BackgroundTransparency = 1,
+        Position = UDim2.new(1, -30, 0, 0),
+        Size = UDim2.new(0, 30, 0, 30),
+        Font = Enum.Font.GothamBold,
+        Text = "×",
+        TextColor3 = COLORS.TEXT_SECONDARY,
+        TextSize = 20,
+        Parent = notificationFrame
+    })
+    
+    -- Close button hover effect
+    closeButton.MouseEnter:Connect(function()
+        TweenService:Create(
+            closeButton,
+            TWEEN_INFO.SHORT,
+            {TextColor3 = COLORS.TEXT_PRIMARY}
+        ):Play()
+    end)
+    
+    closeButton.MouseLeave:Connect(function()
+        TweenService:Create(
+            closeButton,
+            TWEEN_INFO.SHORT,
+            {TextColor3 = COLORS.TEXT_SECONDARY}
+        ):Play()
+    end)
+    
+    -- Close functionality
+    local function closeNotification()
+        local index = table.find(NotificationSystem.Notifications, notificationFrame)
+        if index then
+            table.remove(NotificationSystem.Notifications, index)
+        end
+        
+        TweenService:Create(
+            notificationFrame,
+            TWEEN_INFO.SHORT,
+            {Position = UDim2.new(1, 20, 0, 0)}
+        ):Play()
+        
+        task.delay(0.2, function()
+            notificationFrame:Destroy()
+        end)
+    end
+    
+    closeButton.MouseButton1Click:Connect(closeNotification)
+    
+    -- Animate progress bar
+    local progressTween = TweenService:Create(
+        progressBar,
+        TweenInfo.new(duration, Enum.EasingStyle.Linear),
+        {Size = UDim2.new(0, 0, 0, 2)}
+    )
+    
+    -- Add particles
+    for i = 1, 3 do
+        CreateParticle(notificationFrame)
+    end
+    
+    -- Animate notification entry
+    table.insert(NotificationSystem.Notifications, notificationFrame)
+    
+    TweenService:Create(
+        notificationFrame,
+        TWEEN_INFO.SHORT,
+        {Position = UDim2.new(0, 0, 0, 0)}
+    ):Play()
+    
+    progressTween:Play()
+    progressTween.Completed:Connect(closeNotification)
+    
+    return notificationFrame
 end
 
 -- Create the library
@@ -373,6 +583,25 @@ function SleekUI:ToggleVisibility()
         end)
         tween:Play()
     end
+end
+
+-- Send a notification
+function SleekUI:Notify(title, message, notificationType, duration)
+    notificationType = notificationType or "info"
+    
+    -- Validate notification type
+    local validTypes = {
+        success = true,
+        error = true,
+        warning = true,
+        info = true
+    }
+    
+    if not validTypes[notificationType:lower()] then
+        notificationType = "info"
+    end
+    
+    return CreateNotification(title, message, notificationType, duration)
 end
 
 -- Create a new tab
